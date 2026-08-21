@@ -27,7 +27,7 @@ Context: Outlook search is unreliable for Gianluca — this is a hard fact, not 
 | Asset | Where | State |
 |---|---|---|
 | HOME v0: `1-convert.sh` (readpst→mbox) → `2-parse.py` (mbox→JSONL: full bodies, message_id/in_reply_to/references, from/to/cc, date, folder, attachments flag) → `3-ingest.py` (ChromaDB, multilingual embedder, 1 email = 1 chunk, union-find thread_id) → `server.py` (MCP: email_search, email_thread, email_stats) | HOME machine, unpushed | Verified 2026-07-11 on 779 emails (June PST). Salvage Sep 2. |
-| `mailRead/export_PST.py` (Outlook COM extractor) | `gianboc/mailRead`, on this laptop | Works (proven on 19.8 GB in April) but the COM route was consciously abandoned for readpst — keep only as fallback if readpst disappoints. |
+| `salvage/export_PST.py` (Outlook COM extractor) + `salvage/taxonomy-seed.md` (category schema, sender/domain/project maps for the Phase-2 tagger) | this repo, `salvage/` | Salvaged 2026-08-21 from `gianboc/mailRead` (repo then deleted). COM extractor works (proven on 19.8 GB in April) but the route was consciously abandoned for readpst — fallback only. |
 | Lessons from v0 (recorded in the Obsidian WI) | — | Dense-only retrieval is weak on acronyms → this rebuild is **hybrid (BM25 + dense) from day one**. Outlook quoted-header stripping is imperfect → keep the stripper conservative. `message_id` is the dedup key for repeated exports. Embedder must be multilingual (IT + EN mail): paraphrase-multilingual-MiniLM-L12-v2. |
 
 ## Rebuild phases
