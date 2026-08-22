@@ -41,6 +41,25 @@ new mail only     → ./4-triage.py  (skips every id already in the worksheet)  
 
 Deleted emails: their worksheet line stays (harmless; prevents re-triage), their ledger row disappears at the next render. Reviewed ACTION lines: marked `done: <date>` in the worksheet by a one-line script at review time (step 3a; script not yet written) — the ledger then hides the verdict. Action state never lives in the ledger; it lives in the GTD files.
 
+### What happens to each file when the mailbox changes
+
+Nothing is live: no file changes until a script is run. A change in Outlook reaches the repo only through the next export.
+
+**You delete an email in Outlook** → next export lacks it → `2-parse.py`: no line in `asd.jsonl` → `asd-ledger.jsonl`: its line stays, untouched → `5-ledger.py`: row gone from `asd-ledger.md` → `3-index.py` (future): entry removed. GTD files untouched. $0.
+
+**You mark an email read/unread** → next export + `2-parse.py`: `is_read` flips in `asd.jsonl` → `asd-ledger.jsonl`: untouched → `5-ledger.py`: the `read` column changes in `asd-ledger.md`. Nothing else. $0.
+
+**An email triaged ACTION, and the action gets done.** Only during the backlog bankruptcy (the verdict column does not exist at regime). At the review session you rule on each ACTION/WAITING row of `asd-ledger.md`: capture (line written to nextActions/waitingFor), drop, or do-it-now (2-minute rule). In all three cases a one-line script stamps `done: <date>` on that row of `asd-ledger.jsonl` ($0); `5-ledger.py` then hides the verdict. The email is moved to `zzReference` like all the others. Doing the captured action later happens from nextActions, which is the only place action state lives — the ledger is never updated for it.
+
+### Now vs regime
+
+| | Backlog bankruptcy (now) | Regime (after inbox-zero) |
+|---|---|---|
+| Who decides what is an action | LLM proposes (`4-triage.py`), Gianluca rules | Gianluca, at arrival |
+| Verdict column in `asd-ledger.jsonl` | yes, one-off | not produced |
+| `4-triage.py` | full pass on the backlog | gist+tag only for new `message_id`s, or skipped |
+| Monthly chain | — | export → `1-convert.sh` → `2-parse.py` → (`4-triage.py` gist-only) → `5-ledger.py` → `3-index.py` |
+
 ## Requirements
 
 - WSL/Linux with Python 3.10+ (stages 1–2b use the standard library only)
