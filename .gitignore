@@ -5,3 +5,4 @@ db/
 *.mbox
 *.jsonl
 .venv/
+__pycache__/

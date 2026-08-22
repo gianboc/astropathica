@@ -2,7 +2,7 @@
 """Stage 2: mbox tree (from 1-convert.sh) -> one JSONL, one record per email.
 Stdlib only. Usage: ./2-parse.py workdata/<name>  -> workdata/<name>.jsonl
 Fields: message_id, in_reply_to, references[], date (ISO), from_name, from_email,
-to[], cc[], subject, subject_norm, folder, body, attachments[{filename,size,type}].
+to[], cc[], subject, subject_norm, folder, body, attachments[{filename,size,type}], is_read (readpst 'Status: RO').
 """
 import email, email.policy, hashlib, json, mailbox, re, sys
 from email.utils import getaddresses, parseaddr, parsedate_to_datetime
@@ -49,8 +49,19 @@ def body_of(msg):
     if m and m.start()>0: body=body[:m.start()]
     return body.strip(), atts
 
+IT_DAYS={'lun':'Mon','mar':'Tue','mer':'Wed','gio':'Thu','ven':'Fri','sab':'Sat','dom':'Sun'}
+IT_MONTHS={'gen':'Jan','feb':'Feb','mar':'Mar','apr':'Apr','mag':'May','giu':'Jun','lug':'Jul',
+           'ago':'Aug','set':'Sep','ott':'Oct','nov':'Nov','dic':'Dec'}
 def norm_date(v):
+    """RFC-2822 date -> ISO. Fallback: Italian-localized day/month names (some IT servers emit 'Sab, 22 Ago 2026')."""
+    v=(v or '').strip()
     try: return parsedate_to_datetime(v).isoformat()
+    except Exception: pass
+    try:
+        t=re.sub(r'\s*\([A-Z]+\)\s*$','',v).split()
+        if t and t[0].rstrip(',').lower() in IT_DAYS: t[0]=IT_DAYS[t[0].rstrip(',').lower()]+','
+        if len(t)>2 and t[2].lower() in IT_MONTHS: t[2]=IT_MONTHS[t[2].lower()]
+        return parsedate_to_datetime(' '.join(t)).isoformat()
     except Exception: return ''
 
 def addrs(msg,h):
@@ -76,7 +87,8 @@ def main(root):
                          'date':norm_date(msg.get('Date','')),'from_name':fn,'from_email':fe.lower(),
                          'to':addrs(msg,'To'),'cc':addrs(msg,'Cc'),'subject':subj,
                          'subject_norm':RE_SUBJ.sub('',subj).strip().lower(),'folder':folder,
-                         'body':body,'attachments':atts}
+                         'body':body,'attachments':atts,
+                         'is_read':'R' in (msg.get('Status') or '')}
                     fo.write(json.dumps(rec,ensure_ascii=False)+'\n'); n+=1
                 except Exception as e:
                     print(f'!! {f}: {e}',file=sys.stderr)
