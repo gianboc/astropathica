@@ -3,7 +3,7 @@
 Runs against OpenRouter (OpenAI-compatible endpoint, stdlib urllib only). Key: $OPENROUTER_API_KEY.
 The vault bootstrap (config/bootstrap_files.txt) + config/triage_addendum.md form the system prompt,
 sent with cache_control so repeated calls pay ~10% for it.
-Usage: ./4-triage.py workdata/asd.jsonl [--limit N] [--offset N] [--unread] [--batch 25] [--model anthropic/claude-opus-5] [--suffix NAME] [--dry-run]
+Usage: ./4-triage.py workdata/asd.jsonl [--limit N] [--offset N] [--unread | --read-sample N --seed S] [--batch 25] [--model anthropic/claude-opus-5] [--suffix NAME] [--dry-run]
 Output: workdata/<name>-ledger.jsonl (append; resumable — already-triaged ids are skipped) and workdata/<name>-ledger.md
 """
 import json, os, re, sys, time, urllib.request, datetime
@@ -86,6 +86,9 @@ def main():
     recs = [json.loads(l) for l in open(path, encoding='utf-8')]
     by_id = {r['message_id']: r for r in recs}
     if unread: recs = [r for r in recs if not r.get('is_read')]
+    if '--read-sample' in a:
+        import random; random.seed(int(opt('--seed', 1)))
+        recs = random.sample([r for r in recs if r.get('is_read')], int(opt('--read-sample', 50)))
     recs.sort(key=lambda r: r['date'])
     base = str(Path(path).with_suffix('')); lj, lm = f"{base}-ledger{suffix}.jsonl", f"{base}-ledger{suffix}.md"
     done = {json.loads(l)['id'] for l in open(lj, encoding='utf-8')} if Path(lj).exists() else set()

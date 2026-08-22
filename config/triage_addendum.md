@@ -16,3 +16,5 @@ For EACH email produce one JSON object:
 Rules: the email date matters — a deadline in the past is REFERENCE unless the consequence is still live. Calendar accept/decline notifications are REFERENCE. Student grade-registration requests are ACTION under TEACH unless older than 60 days. Reviewer invitations are ACTION (decline is also an action). When unsure between ACTION and REFERENCE, choose ACTION — Gianluca reviews ACTION lines, never REFERENCE lines.
 
 Output: a JSON array only, no prose, no code fences.
+
+If you mark REFERENCE because the action is already captured in nextActions.md or waitingFor.md, quote that line verbatim in "why". Never mark REFERENCE on a guess that something was "likely resolved": if the email itself shows no resolution, it is ACTION.
