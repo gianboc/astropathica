@@ -57,6 +57,6 @@ Only after both halves pass does the 2024 block move to `zzReference`, and only 
 ## Lifetimes (clarified 2026-08-21 after the test run)
 
 - **Permanent, monthly:** export → readpst → parse (Message-ID dedup) → index update. Search (BM25 + dense → Claude reads the hits) is Astropathica proper; no LLM in the pipeline, only at query time.
-- **Optional recurring:** ledger gist + project tag (~$2/month). Keep only if the ledger gets read as a table of contents; search does not depend on it.
+- **Switched off at regime (decision 2026-08-21):** the ledger gist + tag pass. Possible as a ~$0.50/month plain-language catalog, but the index answers the same need; the ledger is frozen as the bankruptcy artifact. Regime = export → convert → parse → index, no LLM.
 - **One-off:** the ledger verdict column (ACTION / WAITING / REFERENCE / NOISE) — the 2026 backlog-bankruptcy tool. Once inbox-zero runs by hand at arrival, it is dead code.
 - **Dead:** `embers.py` — mechanical ember filter, refuted on the real inbox 2026-08-21 (73% flagged, ~20% of the "safe" pile live); kept as the record of the test.
