@@ -1,0 +1,28 @@
+# Files concatenated into the system prompt of 4-triage.py, in this order.
+# Same set the /wake harness injects (PEOPLE in full here, SESSION_LOG tail-30), plus nextActions.md.
+# Prefix "tail30:" = last 30 lines only.
+/mnt/c/Obsidian/Segmentum2026/00-Control/Claude/DESIGN-PRINCIPLES.md
+/mnt/c/Obsidian/Segmentum2026/01-Reference/VALUES.md
+/mnt/c/Obsidian/Segmentum2026/01-Reference/GROUP-MUSYCHEN.md
+/mnt/c/Obsidian/Segmentum2026/Initiatives/01-IndomitusInitiative/MASTER-IndomitusInitiative.md
+/mnt/c/Obsidian/Segmentum2026/Initiatives/01-IndomitusInitiative/INDOMITUS-STATUS.md
+/mnt/c/Obsidian/Segmentum2026/00-Control/Claude/ADDRESSES.md
+/mnt/c/Obsidian/Segmentum2026/Initiatives/01-IndomitusInitiative/DECISIONS.md
+/mnt/c/Obsidian/Segmentum2026/Initiatives/02-ProjectWebway/MASTER-ProjectWebway.md
+/mnt/c/Obsidian/Segmentum2026/Initiatives/02-ProjectWebway/DECISIONS.md
+/mnt/c/Obsidian/Segmentum2026/Initiatives/03-AlbaPlumaPraxis/MASTER-AlbaPlumaPraxis.md
+/mnt/c/Obsidian/Segmentum2026/Initiatives/04-TheGreatWork/MASTER-TheGreatWork.md
+/mnt/c/Obsidian/Segmentum2026/Initiatives/05-Administratum/MASTER-Administratum.md
+/mnt/c/Obsidian/Segmentum2026/32A1-EU/32A1-ProjectList.md
+/mnt/c/Obsidian/Segmentum2026/32A2-ITA/32A2-ProjectList.md
+/mnt/c/Obsidian/Segmentum2026/32B-Contracts/32B-ProjectList.md
+/mnt/c/Obsidian/Segmentum2026/32C-Proposals/32C-ProposalList.md
+/mnt/c/Obsidian/Segmentum2026/33A-Research/33A-ResearchList.md
+/mnt/c/Obsidian/Segmentum2026/PEOPLE.md
+/mnt/c/Obsidian/Segmentum2026/00-Control/Claude/NAMES.md
+/mnt/c/Obsidian/Segmentum2026/SYNERGIES.md
+tail30:/mnt/c/Obsidian/Segmentum2026/SESSION_LOG.md
+/mnt/c/Obsidian/Segmentum2026/00-Control/GTD/waitingFor.md
+/mnt/c/Obsidian/Segmentum2026/00-Control/GTD/projectTags.md
+/mnt/c/Obsidian/Segmentum2026/00-Control/GTD/nextActions.md
+/home/gianluca/GITHUB/gianboc/rubicon2026/PLAN.md

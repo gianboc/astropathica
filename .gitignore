@@ -4,3 +4,4 @@ db/
 *.pst
 *.mbox
 *.jsonl
+.venv/
