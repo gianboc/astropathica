@@ -22,6 +22,25 @@ Three facts the table makes visible: the LLM reads every email exactly once (ste
 
 **Where we are (2026-08-21):** steps 0–2 built and run on the full 2026 inbox (5,358 emails, 1,298 unread; Sent Items still missing from the export). Step 3 next.
 
+## The five files — name, writer, trigger, cost
+
+| Name | File | Written by | Trigger | Cost |
+|---|---|---|---|---|
+| **export** | `maildata/<name>.pst` | Gianluca, Outlook export wizard | manual, ~monthly | $0 |
+| **corpus** | `workdata/<name>.jsonl` | `1-convert.sh` + `2-parse.py` | after every export; rebuilt completely — always "the emails currently in the export" | $0, seconds |
+| **worksheet** | `workdata/<name>-ledger.jsonl` | `4-triage.py` — the LLM API call | only for `message_id`s that have no line yet (new mail); append-only, a line is written once and never re-sent | **the only paid step** (see COSTS.md) |
+| **ledger** | `workdata/<name>-ledger.md` | `5-ledger.py` — plain script, no LLM | on demand; keeps only worksheet rows whose email is still in the corpus; read flag from the corpus; verdict shown (with triage date) only while the row is not `done` | $0, seconds |
+| **index** | `db/` | `3-index.py` (Phase 3, not built) | after every export, new emails only | $0 (local model) |
+
+**A change in the mailbox (read, moved, deleted) costs nothing to propagate:**
+
+```
+change in Outlook → export → ./1-convert.sh + ./2-parse.py → ./5-ledger.py        ($0)
+new mail only     → ./4-triage.py  (skips every id already in the worksheet)       ($)
+```
+
+Deleted emails: their worksheet line stays (harmless; prevents re-triage), their ledger row disappears at the next render. Reviewed ACTION lines: marked `done: <date>` in the worksheet by a one-line script at review time (step 3a; script not yet written) — the ledger then hides the verdict. Action state never lives in the ledger; it lives in the GTD files.
+
 ## Requirements
 
 - WSL/Linux with Python 3.10+ (stages 1–2b use the standard library only)
@@ -33,7 +52,9 @@ Three facts the table makes visible: the LLM reads every email exactly once (ste
 ```bash
 ./1-convert.sh maildata/<file>.pst        # PST -> workdata/<file>/ (mbox per folder)
 ./2-parse.py   workdata/<file>            # -> workdata/<file>.jsonl
-./embers.py    workdata/<file>.jsonl      # -> <file>-embers.md + <file>-sample.md
+./embers.py    workdata/<file>.jsonl      # (dead — see PLAN Lifetimes) mechanical ember filter
+./4-triage.py  workdata/<file>.jsonl      # LLM pass -> <file>-ledger.jsonl (worksheet), paid
+./5-ledger.py  workdata/<file>.jsonl      # render <file>-ledger.md from worksheet + corpus, free
 ```
 
 `maildata/`, `workdata/`, `db/` are gitignored — mail never enters the repo.
