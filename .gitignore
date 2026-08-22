@@ -1,0 +1,6 @@
+maildata/
+workdata/
+db/
+*.pst
+*.mbox
+*.jsonl

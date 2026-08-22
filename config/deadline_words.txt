@@ -1,0 +1,15 @@
+# case-insensitive substrings, matched in subject and in the first 1500 chars of body
+scadenza
+entro il
+entro la
+deadline
+urgente
+urgent
+sollecito
+reminder
+promemoria
+ricordo che
+please reply
+risposta entro
+as soon as possible
+quanto prima

@@ -1,0 +1,31 @@
+# one fragment per line, matched case-insensitively against sender name OR address
+# seeded 2026-08-21 from salvage/taxonomy-seed.md — prune/extend freely
+marchisio
+ferri
+bianca
+fida
+lauriello
+buccafusco
+icardi
+battiato
+marcato
+orsi
+di pasquale
+dipasquale
+bensaid
+bodoardo
+brosa
+guevremont
+guévremont
+blais
+gilardi
+querio
+ghadrdan
+rendine
+beiginalou
+vanni
+buffo
+hernandez
+lombardo pontillo
+vellucci
+deferre

@@ -44,3 +44,12 @@ Each phase is one working session in this repo. Say "phase N" and Claude builds 
 ## Non-goals
 
 No triage/classification of unread mail (that was mailRead's goal; the August hand-massacre did it better). No automation of Outlook itself. No cloud anything.
+
+## The test run — unread 2024 (set 2026-08-21)
+
+Gianluca's condition, verbatim in spirit: *a bucket of 3,000 emails I cannot interrogate is not reference, it is a landfill.* So the doctrine is tested on the unread-2024 slice of the Inbox **in two halves, both must pass**:
+
+- **Half A — extraction.** `embers.py` splits the slice mechanically (To-me-direct, power senders, deadline vocabulary, threads Gianluca replied in). Claude drafts gist + proposed verdict per ember; Gianluca decides each (action / waiting / nothing). Then Gianluca skims 30 random non-embers: **zero live commitments among them, or the filter is too weak.**
+- **Half B — retrieval.** After the ledger + search exist over the same slice, Gianluca asks real questions of the 2024 pile ("what did X send about Y", "the email with the Z deadline") and the right emails must come back, in under a minute, without Outlook. **If this fails, nothing gets bulk-moved** — the reference doctrine depends on finding, and finding must be demonstrated before it is trusted.
+
+Only after both halves pass does the 2024 block move to `zzReference`, and only then does the same procedure run on 2025–26.
