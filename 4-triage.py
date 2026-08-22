@@ -3,7 +3,7 @@
 Runs against OpenRouter (OpenAI-compatible endpoint, stdlib urllib only). Key: $OPENROUTER_API_KEY.
 The vault bootstrap (config/bootstrap_files.txt) + config/triage_addendum.md form the system prompt,
 sent with cache_control so repeated calls pay ~10% for it.
-Usage: ./4-triage.py workdata/asd.jsonl [--limit N] [--offset N] [--unread] [--batch 25] [--model anthropic/claude-opus-5] [--dry-run]
+Usage: ./4-triage.py workdata/asd.jsonl [--limit N] [--offset N] [--unread] [--batch 25] [--model anthropic/claude-opus-5] [--suffix NAME] [--dry-run]
 Output: workdata/<name>-ledger.jsonl (append; resumable — already-triaged ids are skipped) and workdata/<name>-ledger.md
 """
 import json, os, re, sys, time, urllib.request
@@ -36,7 +36,7 @@ def call(system, user, model, key):
         "messages": [
             {"role": "system", "content": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]},
             {"role": "user", "content": user}],
-        "max_tokens": 8000, "temperature": 0,
+        "max_tokens": 16000, "temperature": 0,
         "usage": {"include": True},
     }
     req = urllib.request.Request(URL, data=json.dumps(payload).encode(), headers={
@@ -53,7 +53,14 @@ def call(system, user, model, key):
 def parse_json(text):
     text = re.sub(r'^```(?:json)?\s*|\s*```$', '', text.strip())
     i, j = text.find('['), text.rfind(']')
-    return json.loads(text[i:j + 1])
+    try: return json.loads(text[i:j + 1])
+    except json.JSONDecodeError:  # truncated output: salvage the complete objects
+        objs = []
+        for m in re.finditer(r'\{[^{}]*\}', text[i:]):
+            try: objs.append(json.loads(m.group()))
+            except json.JSONDecodeError: pass
+        if not objs: raise
+        print(f"  (truncated output: salvaged {len(objs)} objects)"); return objs
 
 def render(ledger_jsonl, out_md, recs_by_id):
     rows = [json.loads(l) for l in open(ledger_jsonl, encoding='utf-8')]
@@ -70,12 +77,13 @@ def main():
     opt = lambda k, d: a[a.index(k) + 1] if k in a else d
     limit, offset, batch = int(opt('--limit', 0)), int(opt('--offset', 0)), int(opt('--batch', 25))
     model, dry, unread = opt('--model', 'anthropic/claude-opus-5'), '--dry-run' in a, '--unread' in a
+    suffix = opt('--suffix', '')
     key = os.environ.get('OPENROUTER_API_KEY') or sys.exit("OPENROUTER_API_KEY not set")
     recs = [json.loads(l) for l in open(path, encoding='utf-8')]
     by_id = {r['message_id']: r for r in recs}
     if unread: recs = [r for r in recs if not r.get('is_read')]
     recs.sort(key=lambda r: r['date'])
-    base = str(Path(path).with_suffix('')); lj, lm = f"{base}-ledger.jsonl", f"{base}-ledger.md"
+    base = str(Path(path).with_suffix('')); lj, lm = f"{base}-ledger{suffix}.jsonl", f"{base}-ledger{suffix}.md"
     done = {json.loads(l)['id'] for l in open(lj, encoding='utf-8')} if Path(lj).exists() else set()
     todo = [r for r in recs if r['message_id'] not in done][offset:]
     if limit: todo = todo[:limit]
