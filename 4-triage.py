@@ -6,7 +6,7 @@ sent with cache_control so repeated calls pay ~10% for it.
 Usage: ./4-triage.py workdata/asd.jsonl [--limit N] [--offset N] [--unread] [--batch 25] [--model anthropic/claude-opus-5] [--suffix NAME] [--dry-run]
 Output: workdata/<name>-ledger.jsonl (append; resumable — already-triaged ids are skipped) and workdata/<name>-ledger.md
 """
-import json, os, re, sys, time, urllib.request
+import json, os, re, sys, time, urllib.request, datetime
 from pathlib import Path
 
 URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -63,14 +63,18 @@ def parse_json(text):
         print(f"  (truncated output: salvaged {len(objs)} objects)"); return objs
 
 def render(ledger_jsonl, out_md, recs_by_id):
+    """Ledger = worksheet JOIN latest export. Rows whose email is gone from the export are dropped;
+    read flag comes from the export; verdict shown (with its date) only while the row is not 'done'."""
     rows = [json.loads(l) for l in open(ledger_jsonl, encoding='utf-8')]
-    rows.sort(key=lambda x: recs_by_id.get(x['id'], {}).get('date', ''))
+    rows = [x for x in rows if x['id'] in recs_by_id]
+    rows.sort(key=lambda x: recs_by_id[x['id']]['date'])
+    esc = lambda s: str(s).replace('|', '\\|').replace('\n', ' ')
     with open(out_md, 'w', encoding='utf-8') as f:
-        f.write("| date | verdict | tag | from | subject | gist | why |\n|---|---|---|---|---|---|---|\n")
+        f.write("| date | read | verdict (triaged) | tag | from | subject | gist | why |\n|---|---|---|---|---|---|---|---|\n")
         for x in rows:
-            r = recs_by_id.get(x['id'], {})
-            esc = lambda s: str(s).replace('|', '\\|').replace('\n', ' ')
-            f.write(f"| {r.get('date','')[:10]} | {x['verdict']} | {x['tag']} | {esc(r.get('from_name') or r.get('from_email',''))} | {esc(r.get('subject','')[:70])} | {esc(x['gist'])} | {esc(x['why'])} |\n")
+            r = recs_by_id[x['id']]
+            v = '' if x.get('done') else f"{x['verdict']} ({x.get('triaged','')})"
+            f.write(f"| {r['date'][:10]} | {'R' if r.get('is_read') else 'U'} | {v} | {x['tag']} | {esc(r.get('from_name') or r.get('from_email',''))} | {esc(r.get('subject','')[:70])} | {esc(x['gist'])} | {esc(x['why']) if not x.get('done') else ''} |\n")
 
 def main():
     a = sys.argv[1:]; path = a[0]
@@ -103,7 +107,7 @@ def main():
         with open(lj, 'a', encoding='utf-8') as f:
             for r in chunk:
                 x = got.get(r['message_id'])
-                if x: f.write(json.dumps({'id': r['message_id'], 'gist': x.get('gist', ''), 'tag': x.get('tag', ''), 'verdict': x.get('verdict', ''), 'why': x.get('why', '')}, ensure_ascii=False) + '\n')
+                if x: f.write(json.dumps({'id': r['message_id'], 'gist': x.get('gist', ''), 'tag': x.get('tag', ''), 'verdict': x.get('verdict', ''), 'why': x.get('why', ''), 'triaged': datetime.date.today().isoformat()}, ensure_ascii=False) + '\n')
                 else: print(f"  missing verdict for {r['message_id']}")
         pin, pout = u.get('prompt_tokens', 0), u.get('completion_tokens', 0)
         cached = (u.get('prompt_tokens_details') or {}).get('cached_tokens', 0)
