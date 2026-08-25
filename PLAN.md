@@ -1,62 +1,85 @@
-# Astropathica — v0 rebuild plan (laptop)
+# Astropathica — PLAN
 
-**Decision (2026-08-21):** development restarts here, on the laptop, now. A working v0 exists on the HOME machine (built 2026-07-11) but was never pushed — origin held only a README — and HOME is unreachable until the Torino return. We do not wait for it: the last ten Stanford days (Aug 21–30) need email findability, and this build delivers it. The HOME code becomes salvage: on **Sep 2** it gets pushed and diffed against this rebuild; anything better is kept.
+Local, read-only search over the exported POLITO mailbox, and the one-off tool that empties the backlog into GTD.
 
-**The clock:** value must arrive within days, not weeks. That is why the phases below put the **ledger before the search index** — the ledger alone unblocks the email attack.
+Three words are used with fixed meanings throughout this repo:
 
-## Hard constraints (unchanged from v0 — binding)
-
-1. **Read-only, always.** No tool ever modifies or deletes an email. Everything operates on exported dumps; the live mailbox is untouched.
-2. **Local only.** `maildata/`, `workdata/`, `db/` are gitignored. Push only if the repo is fully clean of mail content.
-3. **No Outlook in the pipeline.** Outlook is the manual export button, nothing more. Conversion happens with `readpst` (pst-utils) in WSL; everything downstream is pure Python.
-4. **Azure Graph is dead.** POLITO's tenant blocks user-level consent. Do not retry it.
-
-## The reference doctrine this serves (ratified 2026-08-20)
-
-Context: Outlook search is unreliable for Gianluca — this is a hard fact, not a preference. Therefore Outlook is used for *storage only*, and finding always happens in systems we own.
-
-1. **One reference folder** in Outlook (`zzReference`), no subfolders, moved to with one keystroke (Quick Step). Storage loses nothing; finding never depends on Outlook.
-2. **Everything left after action-extraction is reference by definition.** Bulk moves, no per-email categorization, inbox reaches zero fast.
-3. **The ledger is the finding aid**: one machine-written line per email (date, sender, what it is, probable project tag) in a single greppable file. Built from PST exports. This exists *before* any search index and is useful on its own.
-4. **Attachments are handled separately** — they are the only content not findable by text search over bodies. Extract them, keep the few that matter in project Dropbox folders, leave the rest in a flat store pointed at by the ledger.
-5. Month-granularity subfolders (`zzRef/2026-05`) are allowed if one bucket ever feels unsafe. Topic folders never.
-6. Per-project email citations (one line: date, sender, subject, in the project's Obsidian note) only for critical emails, and only once search works.
-
-## What exists and what it taught
-
-| Asset | Where | State |
+| Word | Meaning | Where it lives |
 |---|---|---|
-| HOME v0: `1-convert.sh` (readpst→mbox) → `2-parse.py` (mbox→JSONL: full bodies, message_id/in_reply_to/references, from/to/cc, date, folder, attachments flag) → `3-ingest.py` (ChromaDB, multilingual embedder, 1 email = 1 chunk, union-find thread_id) → `server.py` (MCP: email_search, email_thread, email_stats) | HOME machine, unpushed | Verified 2026-07-11 on 779 emails (June PST). Salvage Sep 2. |
-| `salvage/export_PST.py` (Outlook COM extractor) + `salvage/taxonomy-seed.md` (category schema, sender/domain/project maps for the Phase-2 tagger) | this repo, `salvage/` | Salvaged 2026-08-21 from `gianboc/mailRead` (repo then deleted). COM extractor works (proven on 19.8 GB in April) but the route was consciously abandoned for readpst — fallback only. |
-| Lessons from v0 (recorded in the Obsidian WI) | — | Dense-only retrieval is weak on acronyms → this rebuild is **hybrid (BM25 + dense) from day one**. Outlook quoted-header stripping is imperfect → keep the stripper conservative. `message_id` is the dedup key for repeated exports. Embedder must be multilingual (IT + EN mail): paraphrase-multilingual-MiniLM-L12-v2. |
+| **Step** | one stage of the *pipeline* — a program run (or a manual act) that turns one file into the next. Steps are numbered 0–7 and run in order every time mail is processed. | § 2 below; full table in `README.md` |
+| **Phase** | one unit of *building* the code — a working session that makes a step exist. Phases are numbered 1–6 and are done once. | § 3 below |
+| **The burn** | the *schedule* for emptying the backlog: which steps run on which day this week. | § 4 below |
 
-## Rebuild phases
+Everything learned by running (numbers, pitfalls, what failed) is in `experience/EXPERIENCE.md`, not here. This file says what to do; that file says what happened.
 
-Each phase is one working session in this repo. Say "phase N" and Claude builds it against this plan; Gianluca supplies the PST exports and reviews outputs.
+---
 
-- **Phase 1 — Acquire + convert + parse.** Manual PST export of one small folder from Outlook → `readpst` → mbox → parse to JSONL (full bodies, message_id, threading fields, attachment inventory: filename/size/type per email — content comes in Phase 4). Verify counts against Outlook's own folder count.
-- **Phase 2 — The ledger.** From the JSONL, generate the one-line-per-email catalog (markdown or CSV: date, sender, subject, one-line gist, probable project tag — gist and tag from an LLM pass, batched). Deliverable: a file Gianluca can grep and read. **This phase is the speed goal — it makes the reference archive findable this week.**
-- **Phase 3 — Index + search.** Hybrid retrieval: BM25 + multilingual dense embeddings, keyed on message_id; CLI with sender/date filters and thread grouping. (v0's design plus the BM25 half it lacked.)
-- **Phase 4 — Attachments.** Extract attachment content from the PST (`readpst` saves attachments; verify fidelity) → flat store with hash names → ledger rows per file; one LLM-assisted session routes the keepers into project Dropbox folders.
-- **Phase 5 — MCP server.** Same three tools as v0 (email_search, email_thread, email_stats), for Claude Code and Claude Desktop.
-- **Phase 6 — Scale + steady state.** Full-mailbox export including `zzReference`; monthly re-export with message_id dedup; **Sep 2: push HOME v0, diff, salvage.** After that, the monthly re-export is the only recurring cost.
+## 1. Constraints and doctrine
 
-## Non-goals
+**Hard constraints (binding):**
+1. **Read-only, always.** No tool modifies or deletes an email. Everything runs on exported copies; the live mailbox is untouched.
+2. **Local only.** `maildata/`, `workdata/`, `db/` are gitignored. Push only when the repo holds no mail content.
+3. **No Outlook in the pipeline.** Outlook is the export button and the final drag, nothing more. Conversion is `readpst` in WSL; everything downstream is Python.
+4. **Azure Graph is dead.** POLITO blocks user-level consent. Do not retry.
 
-No triage/classification of unread mail (that was mailRead's goal; the August hand-massacre did it better). No automation of Outlook itself. No cloud anything.
+**Reference doctrine (ratified 2026-08-20):** Outlook search is unreliable for Gianluca — a fact. So Outlook is *storage*, finding happens in a system we own.
+- One reference folder in Outlook, `zzReference`, no subfolders. Everything that is not an action goes there in bulk; nothing is categorised per email.
+- Finding is done by the index (step 4–5), never by Outlook. Therefore **no bulk move before search is demonstrated** — an archive you cannot interrogate is a landfill.
+- Attachments are the one thing text search misses; they get their own step (step 6), later.
 
-## The test run — unread 2024 (set 2026-08-21)
+---
 
-Gianluca's condition, verbatim in spirit: *a bucket of 3,000 emails I cannot interrogate is not reference, it is a landfill.* So the doctrine is tested on the unread-2024 slice of the Inbox **in two halves, both must pass**:
+## 2. The pipeline — steps
 
-- **Half A — extraction.** `embers.py` splits the slice mechanically (To-me-direct, power senders, deadline vocabulary, threads Gianluca replied in). Claude drafts gist + proposed verdict per ember; Gianluca decides each (action / waiting / nothing). Then Gianluca skims 30 random non-embers: **zero live commitments among them, or the filter is too weak.**
-- **Half B — retrieval.** After the ledger + search exist over the same slice, Gianluca asks real questions of the 2024 pile ("what did X send about Y", "the email with the Z deadline") and the right emails must come back, in under a minute, without Outlook. **If this fails, nothing gets bulk-moved** — the reference doctrine depends on finding, and finding must be demonstrated before it is trusted.
+The factory line. Each step reads the previous step's output file. `README.md` carries the detailed table (inputs, outputs, cost per step); this is the short form.
 
-Only after both halves pass does the 2024 block move to `zzReference`, and only then does the same procedure run on 2025–26.
+| Step | Who | What | Output |
+|---|---|---|---|
+| 0 | Gianluca, Outlook | Export the mailbox (all folders) to a `.pst`. **Quit Outlook before copying** — it keeps the file locked. | `maildata/<name>.pst` |
+| 1 | `1-convert.sh` | `readpst`: proprietary PST → plain-text mbox, one file per folder. | `workdata/<name>/…/mbox` |
+| 2 | `2-parse.py` | mbox → **one JSONL line per email**: date, from/to/cc, subject, full body, read flag, attachment names, folder, message_id. The single source every later step reads. | `workdata/<name>.jsonl` |
+| 3 | `4-triage.py` — **LLM, paid, one-off** | Reads each email once; writes gist, project tag, and a verdict: ACTION / WAITING / REFERENCE / NOISE. The system prompt is the vault bootstrap (`config/bootstrap_files.txt` + `config/triage_addendum.md`), cached by the API — **do not edit it during a run** (an edit rebuilds the cache at full price). Resumable: already-triaged ids are skipped. | `workdata/<name>-ledger.jsonl` (worksheet) |
+| 3′ | `5-ledger.py` — free | Renders the worksheet as a readable table. | `workdata/<name>-ledger.md` (**the ledger**) |
+| 3a | Gianluca + Claude | **The review**: ACTION and WAITING lines only, ~10 s each — capture (→ nextActions / waitingFor), drop, or do now. REFERENCE and NOISE are never looked at. | GTD files updated |
+| 3b | Gianluca, Outlook | **The drag**: select all → `zzReference`. Inbox = 0. Only after step 5 has passed its test. | empty inbox |
+| 4 | `3-index.py` | Search index over all bodies: BM25 (exact words — names, acronyms, codes) + multilingual dense vectors (meaning, IT/EN), keyed on message_id. | `db/` |
+| 5 | `q.py` | A question → BM25 + dense → fused ranking → hits grouped by thread. Claude reads the hits and answers. | an answer |
+| 6 | (later) | Attachments: extract from the mbox to a flat store; keepers routed to project Dropbox folders. | files |
+| 7 | `server.py` (later) | MCP server exposing `email_search` / `email_thread` / `email_stats`, so any Claude chat can call step 5 itself. | steady state |
 
-## Lifetimes (clarified 2026-08-21 after the test run)
+**Now vs regime.** Step 3 (the LLM pass) runs **once**, on the backlog: it is the bankruptcy tool. After inbox-zero, Gianluca triages at arrival by hand and the recurring chain is **export → 1 → 2 → 4**, three commands, no LLM, $0, monthly. The ledger is then frozen as a historical artifact. (`embers.py` — a mechanical pre-filter — is dead: refuted on the real inbox, see EXPERIENCE.)
 
-- **Permanent, monthly:** export → readpst → parse (Message-ID dedup) → index update. Search (BM25 + dense → Claude reads the hits) is Astropathica proper; no LLM in the pipeline, only at query time.
-- **Switched off at regime (decision 2026-08-21):** the ledger gist + tag pass. Possible as a ~$0.50/month plain-language catalog, but the index answers the same need; the ledger is frozen as the bankruptcy artifact. Regime = export → convert → parse → index, no LLM.
-- **One-off:** the ledger verdict column (ACTION / WAITING / REFERENCE / NOISE) — the 2026 backlog-bankruptcy tool. Once inbox-zero runs by hand at arrival, it is dead code.
-- **Dead:** `embers.py` — mechanical ember filter, refuted on the real inbox 2026-08-21 (73% flagged, ~20% of the "safe" pile live); kept as the record of the test.
+---
+
+## 3. Building the code — phases
+
+| Phase | Builds step(s) | State |
+|---|---|---|
+| 1 — Acquire + convert + parse | 0, 1, 2 | ✅ done 2026-08-21. Verified on the full 2026 mailbox (7,268 emails). 3 messages fail to parse (`list index out of range`), undiagnosed. |
+| 2 — Ledger | 3, 3′, 3a | ✅ done 2026-08-21 (triage + render + review flow). The `done`-stamp helper for step 3a is still to write. |
+| 3 — Index + search | 4, 5 | ⬜ **next build.** BM25 + dense (paraphrase-multilingual-MiniLM-L12-v2), CLI with sender/date filters, thread grouping. |
+| 4 — Attachments | 6 | ⬜ later. |
+| 5 — MCP server | 7 | ⬜ later. |
+| 6 — Scale + steady state | monthly chain | ⬜ after the burn: monthly re-export with message_id dedup; README documents the three-command chain. **Sep 2:** push the unpushed HOME v0 (built 2026-07-11: same steps 1–2, ChromaDB index, MCP server) and salvage anything better. |
+
+Salvaged from the abandoned `mailRead` repo, in `salvage/`: an Outlook-COM extractor (fallback if readpst ever fails) and a taxonomy seed for tags.
+
+---
+
+## 4. The burn — week of Aug 24–30, 2026
+
+Goal: leave Sunday with the Inbox at zero, every commitment in GTD, and search working over the archive. Corpus: `Total-260824.pst`, the whole mailbox (~20 GB, 2022 → today).
+
+| Day | Programs (Claude runs) | Gianluca | $ |
+|---|---|---|---|
+| **Mon 24** | Steps 1–2 on the full PST (~1 h). Completeness check: starts 2022, Inbox + Sent Items present, counts match Outlook. Launch step 3 on **2026 unread Inbox** (~1 h unattended). | Quit Outlook. Clear the paid step. | ≈ $18 |
+| **Tue 25** | Step 3′ → ledger. Launch step 3 on **2022–25 unread Inbox**. Write the `done`-stamp helper. | Step 3a on the 2026 ledger (~1–1.5 h). | ≈ $15–25 |
+| **Wed 26** | Phase 3: build steps 4–5. | Step 3a on the 2022–25 ledger. Then the **search test**: 5 real questions, right emails back in < 1 min. | $0 |
+| **Thu 27** | Fix what the test exposed. | Buffer. | $0 |
+| **Fri 28** | — | **Step 3b — the drag.** Inbox → `zzReference`. Re-export (step 0). | $0 |
+| **Sat 29** | Steps 1–2–4 on the post-move export; README carries the monthly chain; commit + push. | — | $0 |
+| **Sun 30** | — | Leave. | — |
+
+Scope rule: the LLM reads **unread** mail only. Read mail is treated as handled (measured: ~1 real action per 50 read emails — EXPERIENCE). Model: Opus 5 — the pass that must not miss a commitment runs once; ≈ $35–45 total.
+
+Slack: Wednesday is the only build day. If the index slips, Thursday's triage review still happens and the drag moves to Saturday.

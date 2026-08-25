@@ -20,7 +20,7 @@ Local, read-only search over an exported Outlook mailbox. Doctrine and phases: `
 
 Three facts the table makes visible: the LLM reads every email exactly once (step 3) and afterwards only what search returns (step 6) — everything in between is deterministic programs. The ledger and the index are two different objects built from the same JSONL: ledger = human-readable catalog + verdicts (triage now, quick looks later); index = machine-searchable bodies (interrogation later); neither replaces the other. Gianluca touches three things only: the export button (0), the ACTION/WAITING review (3a), the drag to `zzReference` (3b).
 
-**Where we are (2026-08-21):** steps 0–2 built and run on the full 2026 inbox (5,358 emails, 1,298 unread; Sent Items still missing from the export). Step 3 next.
+**Vocabulary:** *steps* are the pipeline stages in this table (run every time); *phases* are the build sessions that make a step exist (done once); *the burn* is this week's schedule — all three defined in `PLAN.md`.
 
 ## The five files — name, writer, trigger, cost
 
