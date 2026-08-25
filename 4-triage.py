@@ -3,7 +3,7 @@
 Runs against OpenRouter (OpenAI-compatible endpoint, stdlib urllib only). Key: $OPENROUTER_API_KEY.
 The vault bootstrap (config/bootstrap_files.txt) + config/triage_addendum.md form the system prompt,
 sent with cache_control so repeated calls pay ~10% for it.
-Usage: ./4-triage.py workdata/asd.jsonl [--limit N] [--offset N] [--unread | --read-sample N --seed S] [--folder Inbox] [--year 2026 | --year 2022,2023] [--batch 25] [--model anthropic/claude-opus-5] [--suffix NAME] [--dry-run]
+Usage: ./4-triage.py workdata/asd.jsonl [--limit N] [--offset N] [--unread | --read-sample N --seed S] [--folder Inbox] [--year 2026 | --year 2022,2023] [--batch 25] [--model anthropic/claude-opus-5] [--suffix NAME] [--max-cost USD] [--dry-run]
 Output: workdata/<name>-ledger.jsonl (append; resumable — already-triaged ids are skipped) and workdata/<name>-ledger.md
 """
 import json, os, re, sys, time, urllib.request, datetime
@@ -42,13 +42,18 @@ def call(system, user, model, key):
     req = urllib.request.Request(URL, data=json.dumps(payload).encode(), headers={
         "Authorization": f"Bearer {key}", "Content-Type": "application/json",
         "HTTP-Referer": "https://github.com/gianboc/astropathica", "X-Title": "astropathica triage"})
-    for attempt in range(4):
+    for attempt in range(8):                       # ~25 min of backoff total before giving up
         try:
             with urllib.request.urlopen(req, timeout=600) as resp: return json.load(resp)
         except urllib.error.HTTPError as e:
             msg = e.read().decode(errors='replace')[:300]
-            if e.code in (429, 500, 502, 503) and attempt < 3: time.sleep(10 * (attempt + 1)); continue
+            if e.code in (408, 429, 500, 502, 503, 504, 524) and attempt < 7:
+                wait = min(300, 15 * 2 ** attempt); print(f"  HTTP {e.code}, retry in {wait}s: {msg[:80]}"); time.sleep(wait); continue
             raise SystemExit(f"HTTP {e.code}: {msg}")
+        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
+            if attempt < 7:
+                wait = min(300, 15 * 2 ** attempt); print(f"  network error, retry in {wait}s: {e}"); time.sleep(wait); continue
+            raise SystemExit(f"network error: {e}")
 
 def parse_json(text):
     text = re.sub(r'^```(?:json)?\s*|\s*```$', '', text.strip())
@@ -81,7 +86,7 @@ def main():
     opt = lambda k, d: a[a.index(k) + 1] if k in a else d
     limit, offset, batch = int(opt('--limit', 0)), int(opt('--offset', 0)), int(opt('--batch', 25))
     model, dry, unread = opt('--model', 'anthropic/claude-opus-5'), '--dry-run' in a, '--unread' in a
-    suffix = opt('--suffix', '')
+    suffix = opt('--suffix', ''); max_cost = float(opt('--max-cost', 0))
     key = os.environ.get('OPENROUTER_API_KEY') or sys.exit("OPENROUTER_API_KEY not set")
     recs = [json.loads(l) for l in open(path, encoding='utf-8')]
     by_id = {r['message_id']: r for r in recs}
@@ -118,7 +123,8 @@ def main():
         pin, pout = u.get('prompt_tokens', 0), u.get('completion_tokens', 0)
         cached = (u.get('prompt_tokens_details') or {}).get('cached_tokens', 0)
         c = u.get('cost', 0) or 0; cost += c; tot_in += pin; tot_cached += cached; tot_out += pout
-        print(f"batch {i//batch+1}: {len(got)}/{len(chunk)} verdicts | in {pin:,} (cached {cached:,}) out {pout:,} | ${c:.3f} | {time.time()-t0:.0f}s")
+        if max_cost and cost > max_cost: print(f"!! spend ${cost:.2f} > --max-cost {max_cost}: stopping (resumable)"); break
+        print(f"batch {i//batch+1}/{-(-len(todo)//batch)}: {len(got)}/{len(chunk)} verdicts | in {pin:,} (cached {cached:,}) out {pout:,} | ${c:.3f} | {time.time()-t0:.0f}s")
     render(lj, lm, by_id)
     print(f"TOTAL in {tot_in:,} (cached {tot_cached:,}) out {tot_out:,} | ${cost:.2f} | -> {lm}")
 
