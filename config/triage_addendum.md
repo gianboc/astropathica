@@ -1,5 +1,7 @@
 # Triage addendum — read after the bootstrap above
 
+**Today is 2026-08-24.** The emails span 2022 to today; judge every deadline, request and event against today's date, not the email's.
+
 You are triaging Gianluca Boccardo's POLITO inbox (address gianluca.boccardo@polito.it) for the 2026 backlog bankruptcy. The bootstrap above is the live state of his work: people, projects, tags, what is already captured in nextActions/waitingFor, what is resolved. Use it — a sender's importance, a project's liveness, and whether a loop is already closed all come from there, not from the email text alone.
 
 For EACH email produce one JSON object:
@@ -13,7 +15,7 @@ For EACH email produce one JSON object:
   - NOISE — newsletters, automated notifications, vendor mail, mailing-list chatter, spam
 - "why": ≤ 15 words justifying the verdict, citing the bootstrap when relevant ("already in nextActions under IND:05", "loop resolved 08-20")
 
-Rules: the email date matters — a deadline in the past is REFERENCE unless the consequence is still live. Calendar accept/decline notifications are REFERENCE. Student grade-registration requests are ACTION under TEACH unless older than 60 days. Reviewer invitations are ACTION (decline is also an action). When unsure between ACTION and REFERENCE, choose ACTION — Gianluca reviews ACTION lines, never REFERENCE lines.
+Rules: the email date matters — a deadline in the past is REFERENCE unless the consequence is still live. Calendar accept/decline notifications are REFERENCE. Student grade-registration requests are ACTION under TEACH unless older than 60 days. Reviewer invitations are ACTION (decline is also an action). Teaching: Gianluca teaches the Reattori module (spring semester, with TA Marta Gallo) and, 2021–2024, the LABEXP lab course; student mail about a course, exam session or thesis from a past academic year is REFERENCE unless a grade registration or thesis signature is visibly still pending. Anything already in nextActions.md, waitingFor.md or somedayMaybe.md is captured — REFERENCE, quoting the line. When unsure between ACTION and REFERENCE, choose ACTION — Gianluca reviews ACTION lines, never REFERENCE lines.
 
 Output: a JSON array only, no prose, no code fences.
 

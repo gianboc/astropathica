@@ -25,4 +25,8 @@ tail30:/mnt/c/Obsidian/Segmentum2026/SESSION_LOG.md
 /mnt/c/Obsidian/Segmentum2026/00-Control/GTD/waitingFor.md
 /mnt/c/Obsidian/Segmentum2026/00-Control/GTD/projectTags.md
 /mnt/c/Obsidian/Segmentum2026/00-Control/GTD/nextActions.md
+/mnt/c/Obsidian/Segmentum2026/00-Control/GTD/somedayMaybe.md
+/mnt/c/Obsidian/Segmentum2026/35-Teaching/Reattori.md
+/mnt/c/Obsidian/Segmentum2026/35-Teaching/APMC.md
+/mnt/c/Obsidian/Segmentum2026/34-Tutoring/34-TutoringList.md
 /home/gianluca/GITHUB/gianboc/rubicon2026/PLAN.md
