@@ -84,7 +84,7 @@ def render(ledger_jsonl, out_md, recs_by_id):
 def main():
     a = sys.argv[1:]; path = a[0]
     opt = lambda k, d: a[a.index(k) + 1] if k in a else d
-    limit, offset, batch = int(opt('--limit', 0)), int(opt('--offset', 0)), int(opt('--batch', 25))
+    limit, offset, batch = int(opt('--limit', 0)), int(opt('--offset', 0)), int(opt('--batch', 30))
     model, dry, unread = opt('--model', 'anthropic/claude-opus-5'), '--dry-run' in a, '--unread' in a
     suffix = opt('--suffix', ''); max_cost = float(opt('--max-cost', 0))
     key = os.environ.get('OPENROUTER_API_KEY') or sys.exit("OPENROUTER_API_KEY not set")
@@ -97,7 +97,7 @@ def main():
     if '--read-sample' in a:
         import random; random.seed(int(opt('--seed', 1)))
         recs = random.sample([r for r in recs if r.get('is_read')], int(opt('--read-sample', 50)))
-    recs.sort(key=lambda r: r['date'])
+    recs.sort(key=lambda r: (r.get('subject_norm') or r.get('subject','').lower(), r['date']))   # thread members adjacent -> same batch
     base = str(Path(path).with_suffix('')); lj, lm = f"{base}-ledger{suffix}.jsonl", f"{base}-ledger{suffix}.md"
     done = {json.loads(l)['id'] for l in open(lj, encoding='utf-8')} if Path(lj).exists() else set()
     todo = [r for r in recs if r['message_id'] not in done][offset:]
