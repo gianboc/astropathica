@@ -104,16 +104,30 @@ def main():
     if limit: todo = todo[:limit]
     system = build_bootstrap() + "\n\n" + Path('config/triage_addendum.md').read_text()
     print(f"bootstrap ≈ {len(system)//4:,} tokens (chars/4) | {len(todo)} emails to triage, {len(done)} already done | model {model}")
+    # Pack whole threads into batches (never split a thread unless it alone exceeds the batch size).
+    tkey = lambda r: r.get('subject_norm') or r.get('subject', '').lower()
+    threads, cur = [], []
+    for r in todo:
+        if cur and tkey(r) != tkey(cur[-1]): threads.append(cur); cur = []
+        cur.append(r)
+    if cur: threads.append(cur)
+    batches, cur = [], []
+    for t in threads:
+        while len(t) > batch: batches.append(t[:batch]); t = t[batch:]      # oversize thread: split
+        if cur and len(cur) + len(t) > batch: batches.append(cur); cur = []
+        cur.extend(t)
+    if cur: batches.append(cur)
+    split = sum(1 for t in threads if len(t) > batch)
+    print(f"{len(threads)} threads packed into {len(batches)} batches of <= {batch}; {split} oversize threads split")
     if dry: print(fmt(todo[0]) if todo else 'nothing'); return
     tot_in = tot_cached = tot_out = 0; cost = 0.0
-    for i in range(0, len(todo), batch):
-        chunk = todo[i:i + batch]
+    for i, chunk in enumerate(batches):
         user = f"Triage these {len(chunk)} emails. Return a JSON array with one object per email, same order.\n\n" + "\n\n".join(fmt(r) for r in chunk)
         t0 = time.time(); resp = call(system, user, model, key)
         text = resp['choices'][0]['message']['content']; u = resp.get('usage', {})
         try: items = parse_json(text)
         except Exception as e:
-            Path(f"{base}-triage-error-{i}.txt").write_text(text); print(f"!! batch {i}: unparseable output saved; {e}"); continue
+            Path(f"{base}-triage-error-{i+1}.txt").write_text(text); print(f"!! batch {i}: unparseable output saved; {e}"); continue
         got = {x['id']: x for x in items if isinstance(x, dict) and 'id' in x}
         with open(lj, 'a', encoding='utf-8') as f:
             for r in chunk:
@@ -124,7 +138,7 @@ def main():
         cached = (u.get('prompt_tokens_details') or {}).get('cached_tokens', 0)
         c = u.get('cost', 0) or 0; cost += c; tot_in += pin; tot_cached += cached; tot_out += pout
         if max_cost and cost > max_cost: print(f"!! spend ${cost:.2f} > --max-cost {max_cost}: stopping (resumable)"); break
-        print(f"batch {i//batch+1}/{-(-len(todo)//batch)}: {len(got)}/{len(chunk)} verdicts | in {pin:,} (cached {cached:,}) out {pout:,} | ${c:.3f} | {time.time()-t0:.0f}s")
+        print(f"batch {i+1}/{len(batches)}: {len(got)}/{len(chunk)} verdicts | in {pin:,} (cached {cached:,}) out {pout:,} | ${c:.3f} | {time.time()-t0:.0f}s")
     render(lj, lm, by_id)
     print(f"TOTAL in {tot_in:,} (cached {tot_cached:,}) out {tot_out:,} | ${cost:.2f} | -> {lm}")
 
