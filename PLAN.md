@@ -60,7 +60,7 @@ The factory line. Each step reads the previous step's output file. `README.md` c
 | 3 — Index + search | 4, 5 | ⬜ **next build.** BM25 + dense (paraphrase-multilingual-MiniLM-L12-v2), CLI with sender/date filters, thread grouping. |
 | 4 — Attachments | 6 | ⬜ later. |
 | 5 — MCP server | 7 | ⬜ later. |
-| 6 — Scale + steady state | monthly chain | ⬜ after the burn: monthly re-export with message_id dedup; README documents the three-command chain. **Sep 2:** push the unpushed HOME v0 (built 2026-07-11: same steps 1–2, ChromaDB index, MCP server) and salvage anything better. |
+| 6 — Scale + steady state | monthly chain | ⬜ after the burn: monthly re-export with message_id dedup; README documents the three-command chain. **Incremental export (decided 2026-08-26):** the wizard cannot be scripted; a Windows-side Outlook-COM script (`SaveAs` each item since the last run as `.msg`, read with `extract_msg`) replaces it for the monthly delta. Overlap is free — parse dedups on Message-ID, so re-exporting an already-parsed month costs nothing. Until built, the delta is a wizard export with a correct `MM/DD` date filter. **Sep 2:** push the unpushed HOME v0 (built 2026-07-11: same steps 1–2, ChromaDB index, MCP server) and salvage anything better. |
 
 Salvaged from the abandoned `mailRead` repo, in `salvage/`: an Outlook-COM extractor (fallback if readpst ever fails) and a taxonomy seed for tags.
 
