@@ -14,6 +14,9 @@ def main(out, srcs):
         for line in open(s, encoding='utf-8'):
             r = json.loads(line); mid = r['message_id']; n += 1
             if mid not in recs: order.append(mid); new += 1
+            elif '@' not in r['from_email'] and '@' in recs[mid]['from_email']:
+                # Sent-Items copy of a self-sent note carries unresolved Exchange addresses; keep the real ones
+                r['from_email'], r['from_name'], r['to'], r['cc'] = (recs[mid][k] for k in ('from_email','from_name','to','cc'))
             recs[mid] = r
         stats.append((Path(s).name, n, new))
     rows = sorted((recs[m] for m in order), key=lambda r: r['date'])
