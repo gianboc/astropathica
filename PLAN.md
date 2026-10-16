@@ -44,10 +44,11 @@ The factory line. Each step reads the previous step's output file. `README.md` c
 | 3b | Gianluca, Outlook | **The drag**: select all → `zzReference`. Inbox = 0. Only after step 5 has passed its test. | empty inbox |
 | 4 | `3-index.py` | Search index over all bodies: BM25 (exact words — names, acronyms, codes) + multilingual dense vectors (meaning, IT/EN), keyed on message_id. | `db/` |
 | 5 | `q.py` | A question → BM25 + dense → fused ranking → hits grouped by thread. Claude reads the hits and answers. | an answer |
-| 6 | (later) | Attachments: extract from the mbox to a flat store; keepers routed to project Dropbox folders. | files |
+| 6 | `6-merge.py` | Merge every parsed export into one corpus, deduplicated on Message-ID; the later file wins on collision, so folder moves and read flags are current. Overlapping exports cost nothing. | `workdata/corpus.jsonl` |
+| 6′ | (later) | Attachments: extract from the mbox to a flat store; keepers routed to project Dropbox folders. | files |
 | 7 | `server.py` (later) | MCP server exposing `email_search` / `email_thread` / `email_stats`, so any Claude chat can call step 5 itself. | steady state |
 
-**Now vs regime.** Step 3 (the LLM pass) runs **once**, on the backlog: it is the bankruptcy tool. After inbox-zero, Gianluca triages at arrival by hand and the recurring chain is **export → 1 → 2 → 4**, three commands, no LLM, $0, monthly. The ledger is then frozen as a historical artifact. (`embers.py` — a mechanical pre-filter — is dead: refuted on the real inbox, see EXPERIENCE.)
+**Now vs regime.** Step 3 (the LLM pass) runs **once**, on the backlog: it is the bankruptcy tool. After inbox-zero, Gianluca triages at arrival by hand and the recurring chain is **export the delta → 1 → 2 → 6** (→ 4 once the index exists), no LLM, $0, monthly. The ledger is then frozen as a historical artifact. (`embers.py` — a mechanical pre-filter — is dead: refuted on the real inbox, see EXPERIENCE.)
 
 ---
 
