@@ -58,7 +58,7 @@ Nothing is live: no file changes until a script is run. A change in Outlook reac
 | Who decides what is an action | LLM proposes (`4-triage.py`), Gianluca rules | Gianluca, at arrival |
 | Verdict column in `asd-ledger.jsonl` | yes, one-off | not produced |
 | `4-triage.py` | full pass on the backlog | **not run** (a gist-only monthly catalog is possible, ~$0.50/month, but is switched off by decision 2026-08-21) |
-| Monthly chain | — | export the delta → `1-convert.sh` → `2-parse.py` → `6-merge.py` (Message-ID dedup into `workdata/corpus.jsonl`; later `3-index.py`) — $0 |
+| Monthly chain | — | export the delta → `1-convert.sh` → `2-parse.py` → `6-merge.py` (Message-ID dedup into `workdata/corpus.jsonl`; later `3-index.py`) — $0. Every few months a **clean full export** (`Received: anytime`) replaces the corpus outright: `corpus.jsonl` becomes a symlink to the new full JSONL and the deltas are discarded |
 | `asd-ledger.md` | the review queue + catalog | frozen: the bankruptcy artifact, not updated |
 
 ## Requirements
