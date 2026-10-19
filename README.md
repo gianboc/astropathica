@@ -7,8 +7,9 @@ Local, read-only search over an exported Outlook mailbox. Doctrine and phases: `
 | # | Input | Action | Done by | Output | Used for |
 |---|---|---|---|---|---|
 | 0 | Outlook mailbox | Export (date filter, all folders) | **Gianluca**, by hand, ~monthly | `maildata/<name>.pst` | step 1 |
-| 1 | `.pst` | Convert to mbox | **readpst** (deterministic) | `workdata/<name>/…/mbox`, one text file per folder | step 2 only |
+| 1 | `.pst` | Convert to mbox | **readpst** (deterministic) — WSL/Linux path | `workdata/<name>/…/mbox`, one text file per folder | step 2 only |
 | 2 | mbox files | Parse headers, bodies, attachments, read flag | **`2-parse.py`** (deterministic) | `workdata/<name>.jsonl` — one line per email, full body | steps 3, 4, 5 — the single source everything reads |
+| 1+2 | `.pst` | Same, in one step, read straight from the PST | **`2-parse-pst.py`** (libpff, deterministic) — **the Windows path**, no readpst, no mbox tree | same JSONL schema (+ `message_class`) | same |
 | 3 | `.jsonl` + vault bootstrap context | **Read each email once**; write gist, project tag, verdict ACTION / WAITING / REFERENCE / NOISE | **LLM** (API, batched) — `4-triage.py` | **the ledger** `ledger.md`: date, sender, subject, gist, tag, verdict per email | 3a, 3b, 3c |
 | 3a | ledger, ACTION + WAITING lines only | Confirm / overrule each; write GTD lines | **Gianluca** (10 s/line) + **Claude** typing into nextActions / waitingFor | live GTD files | the burn-down itself |
 | 3b | ledger, REFERENCE lines | Bulk-move those emails to `zzReference` | **Gianluca**, in Outlook, select-and-drag | inbox = 0 | done |
@@ -63,13 +64,17 @@ Nothing is live: no file changes until a script is run. A change in Outlook reac
 
 ## Requirements
 
-- WSL/Linux with Python 3.10+ (stages 1–2b use the standard library only)
-- `readpst` from pst-utils: `sudo apt install -y pst-utils`
+- **Windows (native, the path since 2026-10-18):** Python 3.12 + `pip install libpff-python` (win_amd64 wheel) in a `.venv`. Everything downstream (`4-`, `5-`, `6-`, `q.py`) is stdlib.
+- **WSL/Linux (the original path):** Python 3.10+ (stages 1–2 use the standard library only) + `readpst` from pst-utils: `sudo apt install -y pst-utils`. Do not run read-heavy jobs on a 20 GB PST inside WSL2 without a `.wslconfig` memory cap — see EXPERIENCE.
 - Later phases (search index): `pip install` lines will be added here when they land
 
 ## Run
 
 ```bash
+# Windows: PST -> JSONL in one step (read-only on the PST; it may live in Dropbox if Outlook is closed)
+.venv/Scripts/python 2-parse-pst.py maildata/<file>.pst [maildata/<file>.jsonl] [--limit N]
+
+# WSL/Linux: the two-step original
 ./1-convert.sh maildata/<file>.pst        # PST -> workdata/<file>/ (mbox per folder)
 ./2-parse.py   workdata/<file>            # -> workdata/<file>.jsonl
 ./embers.py    workdata/<file>.jsonl      # (dead — see PLAN Lifetimes) mechanical ember filter

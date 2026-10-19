@@ -19,7 +19,7 @@ Everything learned by running (numbers, pitfalls, what failed) is in `experience
 **Hard constraints (binding):**
 1. **Read-only, always.** No tool modifies or deletes an email. Everything runs on exported copies; the live mailbox is untouched.
 2. **Local only.** `maildata/`, `workdata/`, `db/` are gitignored. Push only when the repo holds no mail content.
-3. **No Outlook in the pipeline.** Outlook is the export button and the final drag, nothing more. Conversion is `readpst` in WSL; everything downstream is Python.
+3. **No Outlook in the pipeline.** Outlook is the export button and the final drag, nothing more. Conversion is `readpst` in WSL or `2-parse-pst.py` (libpff) on Windows — the Windows path is the standard since 2026-10-18; everything downstream is Python. (Phase 6 will add an Outlook-COM reader for the monthly delta — that is the one planned exception.)
 4. **Azure Graph is dead.** POLITO blocks user-level consent. Do not retry.
 
 **Reference doctrine (ratified 2026-08-20):** Outlook search is unreliable for Gianluca — a fact. So Outlook is *storage*, finding happens in a system we own.
@@ -36,7 +36,7 @@ The factory line. Each step reads the previous step's output file. `README.md` c
 | Step | Who | What | Output |
 |---|---|---|---|
 | 0 | Gianluca, Outlook | Export the mailbox (all folders) to a `.pst`. **Quit Outlook before copying** — it keeps the file locked. | `maildata/<name>.pst` |
-| 1 | `1-convert.sh` | `readpst`: proprietary PST → plain-text mbox, one file per folder. | `workdata/<name>/…/mbox` |
+| 1 | `1-convert.sh` | `readpst`: proprietary PST → plain-text mbox, one file per folder. **On Windows steps 1+2 are one program, `2-parse-pst.py` (libpff), PST → JSONL directly.** | `workdata/<name>/…/mbox` |
 | 2 | `2-parse.py` | mbox → **one JSONL line per email**: date, from/to/cc, subject, full body, read flag, attachment names, folder, message_id. The single source every later step reads. | `workdata/<name>.jsonl` |
 | 3 | `4-triage.py` — **LLM, paid, one-off** | Reads each email once; writes gist, project tag, and a verdict: ACTION / WAITING / REFERENCE / NOISE. The system prompt is the vault bootstrap (`config/bootstrap_files.txt` + `config/triage_addendum.md`), cached by the API — **do not edit it during a run** (an edit rebuilds the cache at full price). Resumable: already-triaged ids are skipped. | `workdata/<name>-ledger.jsonl` (worksheet) |
 | 3′ | `5-ledger.py` — free | Renders the worksheet as a readable table. | `workdata/<name>-ledger.md` (**the ledger**) |
@@ -61,7 +61,7 @@ The factory line. Each step reads the previous step's output file. `README.md` c
 | 3 — Index + search | 4, 5 | ⬜ **next build.** BM25 + dense (paraphrase-multilingual-MiniLM-L12-v2), CLI with sender/date filters, thread grouping. |
 | 4 — Attachments | 6 | ⬜ later. |
 | 5 — MCP server | 7 | ⬜ later. |
-| 6 — Scale + steady state | monthly chain | ⬜ after the burn: monthly re-export with message_id dedup; README documents the three-command chain. **Incremental export (decided 2026-08-26):** the wizard cannot be scripted; a Windows-side Outlook-COM script (`SaveAs` each item since the last run as `.msg`, read with `extract_msg`) replaces it for the monthly delta. Overlap is free — parse dedups on Message-ID, so re-exporting an already-parsed month costs nothing. Until built, the delta is a wizard export with a correct `MM/DD` date filter. **Sep 2:** push the unpushed HOME v0 (built 2026-07-11: same steps 1–2, ChromaDB index, MCP server) and salvage anything better. |
+| 6 — Scale + steady state | monthly chain | ◐ **Windows move started 2026-10-18:** `2-parse-pst.py` (libpff) builds the corpus from a full PST on native Windows — the WSL readpst route is retired for full dumps (page-cache problem, see EXPERIENCE). Still to build: the Outlook-COM delta reader (new items + read-flag overlay + calendar). Earlier text: after the burn: monthly re-export with message_id dedup; README documents the three-command chain. **Incremental export (decided 2026-08-26):** the wizard cannot be scripted; a Windows-side Outlook-COM script (`SaveAs` each item since the last run as `.msg`, read with `extract_msg`) replaces it for the monthly delta. Overlap is free — parse dedups on Message-ID, so re-exporting an already-parsed month costs nothing. Until built, the delta is a wizard export with a correct `MM/DD` date filter. **Sep 2:** push the unpushed HOME v0 (built 2026-07-11: same steps 1–2, ChromaDB index, MCP server) and salvage anything better. |
 
 Salvaged from the abandoned `mailRead` repo, in `salvage/`: an Outlook-COM extractor (fallback if readpst ever fails) and a taxonomy seed for tags.
 
